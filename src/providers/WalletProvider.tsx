@@ -3,6 +3,7 @@
 import React, {
   createContext,
   useContext,
+  useMemo,
   useState,
   useCallback,
   useEffect,
@@ -71,10 +72,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
     network: validateWalletEnv().network,
   }));
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<void> => {
     setState((prev) => ({ ...prev, isConnecting: true, error: null }));
 
-    return walletConnectionQueue.enqueue(async () => {
+    await walletConnectionQueue.enqueue(async () => {
       try {
         if (typeof window === 'undefined') {
           throw new Error('Window not available');
@@ -155,12 +156,15 @@ export function WalletProvider({ children }: WalletProviderProps) {
     }
   }, [state.isConnected]);
 
-  const value: WalletContextType = {
-    ...state,
-    connect,
-    disconnect,
-    clearError,
-  };
+  const value = useMemo<WalletContextType>(
+    () => ({
+      ...state,
+      connect,
+      disconnect,
+      clearError,
+    }),
+    [state, connect, disconnect, clearError],
+  );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
 }
